@@ -1,0 +1,29 @@
+<div>
+  <button (click)="connectMetaMask()">Подключить MetaMask</button>
+</div>
+
+<div>
+  <h3>Загрузить файл</h3>
+  <textarea [(ngModel)]="fileContent" placeholder="Введите содержимое файла"></textarea>
+  <button (click)="uploadFile()">Загрузить</button>
+</div>
+
+<div>
+  <h3>Получить файл</h3>
+  <input type="text" [(ngModel)]="ownerAddress" placeholder="Адрес владельца" />
+  <input type="number" [(ngModel)]="fileId" placeholder="ID файла" />
+  <button (click)="getFile()">Получить данные файла</button>
+  <pre *ngIf="fileData">{{ fileData | json }}</pre>
+</div>
+
+
+<div>
+  <h3>Файлы пользователя</h3>
+  <input type="text" [(ngModel)]="ownerAddress" placeholder="Адрес владельца" />
+  <button (click)="getUserFiles()">Получить файлы</button>
+  <ul *ngIf="userFiles">
+    <li *ngFor="let file of userFiles.fileHashes; let i = index">
+      ID: {{ userFiles.fileIds[i] }}, Хэш: {{ file }}
+    </li>
+  </ul>
+</div>
