@@ -5,17 +5,18 @@
 <div>
   <h3>Загрузить файл</h3>
   <textarea [(ngModel)]="fileContent" placeholder="Введите содержимое файла"></textarea>
-  <button (click)="uploadFile()">Загрузить</button>
+  <input type="text" [(ngModel)]="encryptionKey" placeholder="Введите ключ шифрования" />
+  <button (click)="uploadEncryptedFile()">Загрузить</button>
 </div>
 
 <div>
   <h3>Получить файл</h3>
   <input type="text" [(ngModel)]="ownerAddress" placeholder="Адрес владельца" />
   <input type="number" [(ngModel)]="fileId" placeholder="ID файла" />
-  <button (click)="getFile()">Получить данные файла</button>
-  <pre *ngIf="fileData">{{ fileData | json }}</pre>
+  <input type="text" [(ngModel)]="decryptionKey" placeholder="Введите ключ расшифровки" />
+  <button (click)="getDecryptedFile()">Получить данные файла</button>
+  <pre *ngIf="fileData">{{ fileData }}</pre>
 </div>
-
 
 <div>
   <h3>Файлы пользователя</h3>

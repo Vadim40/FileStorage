@@ -2,6 +2,9 @@ import { Injectable } from '@angular/core';
 import Web3 from 'web3';
 import { AbiItem } from 'web3-utils';
 import { environment } from '../../environments/environment';
+import { EncryptionService } from './encryption.service';
+import { Observable } from 'rxjs';
+import { switchMap, tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
@@ -10,7 +13,7 @@ export class Web3Service {
   private web3: Web3 | undefined;
   private contract: any;
 
-  constructor() {
+  constructor(private encryptionService: EncryptionService) {
     this.initializeContract();
   }
 
@@ -29,26 +32,70 @@ export class Web3Service {
     return 'MetaMask успешно подключен!';
   }
 
- 
-  async uploadFile(fileContent: string): Promise<any> {
+  async uploadEncryptedFile(fileContent: string, key: string): Promise<void> {
+    if (!fileContent || !key) {
+      alert('Введите содержимое файла и ключ шифрования.');
+      return;
+    }
+  
+    const encryptedData = this.encryptionService.encryptData(fileContent, key);
+    console.log('Encrypted data:', encryptedData);
+  
+    const formData = new FormData();
+    const file = new Blob([encryptedData], { type: 'text/plain' });
+    formData.append('file', file, 'encrypted.txt');
+  
+    formData.forEach((value, key) => {
+      console.log(key, value);
+    });
+  
     try {
+      const cid = await this.encryptionService.uploadToPinata(formData);
+      console.log('Successfully uploaded to Pinata. CID:', cid);
+  
       const accounts = await this.getAccounts();
-      await this.contract.methods.uploadFile(fileContent).send({ from: accounts[0] });
-      console.log('Файл загружен:', fileContent);
-      return fileContent;
+      const receipt = await this.contract.methods
+        .uploadFile(cid)
+        .send({ from: accounts[0] })
+        .on('transactionHash', (hash: string) => {
+          console.log('Transaction hash:', hash);
+        });
+  
+      console.log('Transaction receipt:', receipt);
+      alert('Файл успешно зашифрован и загружен!');
     } catch (error) {
-      throw new Error('Ошибка загрузки файла в контракт: ' + error);
+      console.error(error);
+      alert('Ошибка загрузки файла: ' + error);
     }
   }
+  
+  
+  
 
- 
-  async getFile(owner: string, fileId: number): Promise<any> {
+  // Получение расшифрованных данных из IPFS
+  async getDecryptedFile(owner: string, fileId: number, key: string): Promise<string> {
     try {
-      const fileContent = await this.contract.methods.getFile(owner, fileId).call();
-      console.log('Сырые данные файла из контракта:', fileContent);
-      return fileContent;
+      // Получаем CID из контракта
+      const fileData = await this.contract.methods.getFile(owner, fileId).call();
+      console.log('Данные файла из контракта:', fileData);
+  
+      // Извлечение CID из результата
+      const cid = fileData[0]; // Предполагаем, что CID находится в индексе 0
+      if (typeof cid !== 'string') {
+        throw new Error('Invalid CID format from contract');
+      }
+      // Получаем зашифрованные данные из Pinata
+      const encryptedData: string = await this.encryptionService.getFromPinata(cid);
+      console.log('Зашифрованные данные из Pinata:', encryptedData);
+  
+      // Расшифровываем данные
+      const decryptedData: string = this.encryptionService.decryptData(encryptedData, key);
+      console.log('Расшифрованные данные:', decryptedData);
+  
+      return decryptedData;
     } catch (error) {
-      throw new Error('Ошибка получения данных из контракта: ' + error);
+      console.error('Ошибка в процессе получения расшифрованных данных:', error);
+      throw new Error('Ошибка получения или расшифровки данных: ' + error);
     }
   }
   
@@ -61,11 +108,7 @@ export class Web3Service {
   }
 
   async getUserFiles(owner: string): Promise<{ fileIds: string[]; fileHashes: string[] }> {
-    try {
-      const result = await this.contract.methods.getUserFiles(owner).call();
-      return { fileIds: result[0], fileHashes: result[1] };
-    } catch (error) {
-      throw new Error('Ошибка получения файлов пользователя: ' + error);
-    }
+    const result = await this.contract.methods.getUserFiles(owner).call();
+    return { fileIds: result[0], fileHashes: result[1] };
   }
 }

@@ -1,5 +1,7 @@
 export const environment = {
     production: false,
+    PINATA_API_KEY:'0010c7415558890482f0',
+    PINATA_SECRET_API_KEY : '483bb33b4c68b78f0d8b5bc42f95aa79f7e99433612a7eeb33989019f5a57792',    
     contractAddress: '0x761691B0ae50Eb593EfEd86261c9713Ab2147337',
     abiJson: [
       {
