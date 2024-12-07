@@ -39,28 +39,20 @@ export class Web3Service {
     }
   
     const encryptedData = this.encryptionService.encryptData(fileContent, key);
-    console.log('Encrypted data:', encryptedData);
   
     const formData = new FormData();
     const file = new Blob([encryptedData], { type: 'text/plain' });
     formData.append('file', file, 'encrypted.txt');
   
-    formData.forEach((value, key) => {
-      console.log(key, value);
-    });
-  
     try {
       const cid = await this.encryptionService.uploadToPinata(formData);
-      console.log('Successfully uploaded to Pinata. CID:', cid);
-  
       const accounts = await this.getAccounts();
       const receipt = await this.contract.methods
-        .uploadFile(cid)
-        .send({ from: accounts[0] })
-        .on('transactionHash', (hash: string) => {
-          console.log('Transaction hash:', hash);
-        });
-  
+    .uploadFile(cid)
+    .send({ from: accounts[0] });
+
+    console.log('Transaction hash:', receipt.transactionHash);
+
       console.log('Transaction receipt:', receipt);
       alert('Файл успешно зашифрован и загружен!');
     } catch (error) {
@@ -69,38 +61,26 @@ export class Web3Service {
     }
   }
   
-  
-  
-
-  // Получение расшифрованных данных из IPFS
   async getDecryptedFile(owner: string, fileId: number, key: string): Promise<string> {
     try {
-      // Получаем CID из контракта
+
       const fileData = await this.contract.methods.getFile(owner, fileId).call();
-      console.log('Данные файла из контракта:', fileData);
-  
-      // Извлечение CID из результата
-      const cid = fileData[0]; // Предполагаем, что CID находится в индексе 0
+      const cid = fileData[0]; 
       if (typeof cid !== 'string') {
         throw new Error('Invalid CID format from contract');
       }
-      // Получаем зашифрованные данные из Pinata
+     
       const encryptedData: string = await this.encryptionService.getFromPinata(cid);
-      console.log('Зашифрованные данные из Pinata:', encryptedData);
-  
-      // Расшифровываем данные
       const decryptedData: string = this.encryptionService.decryptData(encryptedData, key);
-      console.log('Расшифрованные данные:', decryptedData);
   
       return decryptedData;
     } catch (error) {
-      console.error('Ошибка в процессе получения расшифрованных данных:', error);
       throw new Error('Ошибка получения или расшифровки данных: ' + error);
     }
   }
   
 
-  private async getAccounts(): Promise<string[]> {
+  async getAccounts(): Promise<string[]> {
     if (!this.web3) {
       throw new Error('Web3 не инициализирован. Подключите MetaMask.');
     }
