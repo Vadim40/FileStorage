@@ -1,107 +1,110 @@
-/* Общие стили */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    color: #333;
-    padding: 20px;
-  }
-  
-  .container {
-    background-color: white;
-    padding: 20px;
-    margin-bottom: 20px;
+/* Контейнер для перетаскивания файла с заданной шириной */
+.file-drop-area {
+    width: 60%; /* Уменьшаем ширину области, чтобы она была компактной */
+    height: 80px; /* Высота области */
+    margin: 0 auto; /* Выравнивание по центру */
+    border: 2px dashed #ccc;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  h3.section-title {
-    font-size: 1.5rem;
-    margin-bottom: 15px;
-    color: #2c3e50;
-  }
-  
-  /* Поля ввода и текстовые области */
-  .input-field {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #aaa;
     font-size: 1rem;
-  }
-  
-  .input-field:focus {
-    border-color: #3498db;
-    outline: none;
-  }
-  
-  textarea.input-field {
-    height: 150px;
-    resize: vertical;
-  }
-  
-  /* Выпадающий список */
-  .dropdown {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-  }
-  
-  .dropdown:focus {
-    border-color: #3498db;
-    outline: none;
-  }
-  
-  /* Кнопки */
-  .button {
-    background-color: #3498db;
-    color: white;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
+    text-align: center;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s;
   }
   
-  .button:hover {
-    background-color: #2980b9;
+  /* Стили для области при перетаскивании */
+  .file-drop-area.dragover {
+    background-color: #e1f5fe;
+    border-color: #4CAF50;
   }
   
-  .button:disabled {
-    background-color: #bdc3c7;
-    cursor: not-allowed;
+  /* Кнопка отмены выбора */
+  button {
+    padding: 8px 15px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    background-color: #ff5722;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 10px; /* Отступ сверху */
+    width: auto; /* Размер кнопки зависит от контента */
   }
   
-  /* Список файлов */
-  .file-list {
-    list-style-type: none;
-    padding-left: 0;
+  /* Изменение цвета кнопки при наведении */
+  button:hover {
+    background-color: #e64a19;
   }
   
-  .file-item {
-    background-color: #ecf0f1;
-    padding: 10px;
+  /* Скрытое поле ввода */
+  .file-input {
+    display: none;
+  }
+  
+  /* Стандартный контейнер для всего контента */
+  .container {
+    width: 50%; /* Ширина контейнера */
+    margin: 20px auto; /* Центрируем контейнер */
+  }
+  
+  /* Заголовки секций */
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: bold;
     margin-bottom: 10px;
-    border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Стили для текстового поля и выпадающего списка */
+  .input-field, .dropdown {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    box-sizing: border-box; /* Чтобы ширина не превышала заданное значение */
+  }
+  
+  /* Кнопка для загрузки файла */
+  .button {
+    width: auto; /* Кнопка не растягивается на всю ширину */
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  /* Изменение цвета кнопки при наведении */
+  .button:hover {
+    background-color: #45a049;
   }
   
   /* Вывод данных */
   .output {
-    background-color: #e1e1e1;
-    padding: 15px;
-    border-radius: 4px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+  }
+  
+  /* Стили для списка файлов */
+  .file-list {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .file-item {
+    padding: 5px;
+    background-color: #f9f9f9;
+    margin-bottom: 5px;
+    border-radius: 8px;
   }
   

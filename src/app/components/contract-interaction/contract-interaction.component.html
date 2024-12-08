@@ -1,4 +1,3 @@
-
 <div class="container">
   <h3 class="section-title">Выберите аккаунт MetaMask</h3>
   <select [(ngModel)]="ownerAddress" class="dropdown">
@@ -8,9 +7,32 @@
 
 <div class="container">
   <h3 class="section-title">Загрузить файл</h3>
-  <textarea [(ngModel)]="fileContent" class="input-field" placeholder="Введите содержимое файла"></textarea>
-  <input type="text" [(ngModel)]="encryptionKey" class="input-field" placeholder="Введите ключ шифрования" />
-  <button (click)="uploadEncryptedFile()" class="button">Загрузить</button>
+  
+  <!-- Область для перетаскивания файла -->
+  <div 
+    class="file-drop-area" 
+    (dragover)="onDragOver($event)" 
+    (dragleave)="onDragLeave($event)" 
+    (drop)="onFileDropped($event)">
+    <span *ngIf="!fileContent">Перетащите файл сюда или выберите его</span>
+    <span *ngIf="fileContent">{{ fileName }}</span>
+  </div>
+
+  <input 
+    type="file" 
+    (change)="onFileSelected($event)" 
+    class="file-input" 
+    [style.display]="fileContent ? 'none' : 'block'" 
+  />
+  <button *ngIf="fileContent" (click)="clearFile()" class="button">Отменить выбор</button>
+
+  <input 
+    type="text" 
+    [(ngModel)]="encryptionKey" 
+    class="input-field" 
+    placeholder="Введите ключ шифрования" 
+  />
+  <button (click)="uploadFile()" class="button">Загрузить</button>
 </div>
 
 <div class="container">
@@ -18,7 +40,7 @@
   <input type="text" [(ngModel)]="ownerAddress" class="input-field" placeholder="Адрес владельца" />
   <input type="number" [(ngModel)]="fileId" class="input-field" placeholder="ID файла" />
   <input type="text" [(ngModel)]="decryptionKey" class="input-field" placeholder="Введите ключ расшифровки" />
-  <button (click)="getDecryptedFile()" class="button">Получить данные файла</button>
+  <button (click)="getFile()" class="button">Получить данные файла</button>
   <pre *ngIf="fileData" class="output">{{ fileData }}</pre>
 </div>
 

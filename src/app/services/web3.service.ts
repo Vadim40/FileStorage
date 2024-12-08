@@ -5,6 +5,7 @@ import { environment } from '../../environments/environment';
 import { EncryptionService } from './encryption.service';
 import { Observable } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
+import { PinataService } from './pinata.service';
 
 @Injectable({
   providedIn: 'root',
@@ -13,7 +14,7 @@ export class Web3Service {
   private web3: Web3 | undefined;
   private contract: any;
 
-  constructor(private encryptionService: EncryptionService) {
+  constructor(private pinataService : PinataService) {
     this.initializeContract();
   }
 
@@ -32,52 +33,74 @@ export class Web3Service {
     return 'MetaMask успешно подключен!';
   }
 
-  async uploadEncryptedFile(fileContent: string, key: string): Promise<void> {
-    if (!fileContent || !key) {
-      alert('Введите содержимое файла и ключ шифрования.');
-      return;
-    }
-  
-    const encryptedData = this.encryptionService.encryptData(fileContent, key);
-  
-    const formData = new FormData();
-    const file = new Blob([encryptedData], { type: 'text/plain' });
-    formData.append('file', file, 'encrypted.txt');
-  
+  async uploadEncryptedFile(file: File, originalName: string, mimeType: string): Promise<void> {
     try {
-      const cid = await this.encryptionService.uploadToPinata(formData);
-      const accounts = await this.getAccounts();
-      const receipt = await this.contract.methods
-    .uploadFile(cid)
-    .send({ from: accounts[0] });
+        // Метаданные для Pinata
+        const metadata = {
+            name: `encrypted_${originalName}`,
+            keyvalues: {
+                originalName: originalName,
+                mimeType: mimeType,
+            },
+        };
 
-    console.log('Transaction hash:', receipt.transactionHash);
+        // Формирование FormData
+        const formData = this.prepareFormData(file, metadata);
 
-      console.log('Transaction receipt:', receipt);
-      alert('Файл успешно зашифрован и загружен!');
+        // Загрузка на Pinata
+        const cid = await this.pinataService.uploadToPinata(formData);
+
+        // Сохранение CID в контракте
+        const accounts = await this.getAccounts();
+        const receipt = await this.contract.methods.uploadFile(cid).send({ from: accounts[0] });
+
+        console.log('Файл успешно сохранен в контракте. Транзакция:', receipt.transactionHash);
     } catch (error) {
-      console.error(error);
-      alert('Ошибка загрузки файла: ' + error);
+        throw new Error('Ошибка при загрузке файла: ' + error);
     }
-  }
-  
-  async getDecryptedFile(owner: string, fileId: number, key: string): Promise<string> {
-    try {
+}
 
+
+prepareFormData(file: File, metadata: any): FormData {
+  const formData = new FormData();
+  formData.append('file', file, metadata.name);
+  formData.append('pinataMetadata', JSON.stringify(metadata));
+  return formData;
+}
+
+
+  
+async getDecryptedFile(owner: string, fileId: number): Promise<{ encryptedContent: Blob; metadata: any }> {
+  try {
+      // Получаем данные из контракта
       const fileData = await this.contract.methods.getFile(owner, fileId).call();
-      const cid = fileData[0]; 
+
+      const cid = fileData[0]; // CID, который был сохранен в контракте
+      const metadataJson = fileData[1]; // Метаданные из контракта (если они были сохранены там)
+
       if (typeof cid !== 'string') {
-        throw new Error('Invalid CID format from contract');
+          throw new Error('Invalid CID format from contract');
       }
-     
-      const encryptedData: string = await this.encryptionService.getFromPinata(cid);
-      const decryptedData: string = this.encryptionService.decryptData(encryptedData, key);
-  
-      return decryptedData;
-    } catch (error) {
-      throw new Error('Ошибка получения или расшифровки данных: ' + error);
-    }
+
+      if (typeof metadataJson !== 'string') {
+          throw new Error('Invalid metadata format from contract');
+      }
+
+      // Получаем зашифрованное содержимое с Pinata (Blob)
+      const encryptedContent = await this.pinataService.getFromPinata(cid);
+
+      // Парсим метаданные
+      const metadata = JSON.parse(metadataJson);
+
+      return { encryptedContent, metadata };
+  } catch (error) {
+      throw new Error('Ошибка получения данных: ' + error);
   }
+}
+
+
+
+
   
 
   async getAccounts(): Promise<string[]> {

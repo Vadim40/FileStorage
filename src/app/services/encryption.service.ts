@@ -1,85 +1,110 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { catchError, firstValueFrom, map, Observable, throwError } from 'rxjs';
 import * as CryptoJS from 'crypto-js';
-import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class EncryptionService {
-  private pinataApiUrl = 'https://api.pinata.cloud/pinning';
-  private apiKey: string =environment.PINATA_API_KEY;
-  private apiSecret: string =environment.PINATA_SECRET_API_KEY;
+  /**
+   * Метод шифрования данных из файла.
+   * @param file Файл, который нужно зашифровать.
+   * @param key Ключ шифрования.
+   * @returns Зашифрованные данные в виде Uint8Array.
+   */
+ /**
+ * Метод шифрования данных из файла.
+ * @param file Файл, который нужно зашифровать.
+ * @param key Ключ шифрования.
+ * @returns Зашифрованный файл с тем же именем.
+ */
+async encryptFile(file: File, key: string): Promise<File> {
+  const fileContent = await this.readFile(file);
 
-  constructor(private http: HttpClient) {
-   
-  }
+  // Шифруем содержимое файла
+  const encryptedData = this.encryptData(fileContent, key);
+  console.log(encryptedData);
+  // Создаём новый файл с зашифрованным содержимым
+  const encryptedFileName = `encrypted_${file.name}`;
+  const encryptedFile = new File([encryptedData], encryptedFileName, {
+      type: 'application/octet-stream',
+  });
 
-  encryptData(data: string, key: string): string {
-    return CryptoJS.AES.encrypt(data, key).toString();
-  }
-
-  decryptData(encryptedData: string, key: string): string {
-    const bytes = CryptoJS.AES.decrypt(encryptedData, key);
-    return bytes.toString(CryptoJS.enc.Utf8);
-  }
-
-  async uploadToPinata(formData: FormData): Promise<string> {
-    if (!this.apiKey || !this.apiSecret) {
-      console.error('Pinata API keys missing.');
-      throw new Error('API keys for Pinata are not configured.');
-    }
-  
-    console.log('API Key:', this.apiKey);
-    console.log('API Secret:', this.apiSecret);
-  
-    const headers = new HttpHeaders({
-      pinata_api_key: this.apiKey,
-      pinata_secret_api_key: this.apiSecret,
-    });
-  
-    try {
-      console.log('Sending file to Pinata:', formData);
-      formData.forEach((value, key) => {
-        console.log(key, value);
-      });
-  
-      const response = await this.http
-        .post<any>('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, { headers })
-        .toPromise();
-  
-      console.log('Response Status:', response.status); // Статус ответа
-      console.log('Full Response:', response); // Весь ответ
-  
-      if (response && response.IpfsHash) {
-        return response.IpfsHash;
-      } else {
-        throw new Error('CID not found in response.');
-      }
-    } catch (error) {
-      console.error('Error uploading to Pinata:', error);
-      throw new Error('Error uploading to Pinata: ' + error);
-    }
-  }
-  
-    
-
-  async getFromPinata(cid: string): Promise<string> {
-    const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
-    console.log('Получение данных из Pinata по CID:', cid);
-  
-    try {
-      const data = await firstValueFrom(
-        this.http.get<string>(url, { responseType: 'text' as 'json' })
-      );
-      console.log('Данные, полученные из Pinata:', data);
-      return data;
-    } catch (error) {
-      console.error('Ошибка при получении данных из Pinata:', error);
-      throw new Error('Ошибка получения данных из Pinata: ' + error);
-    }
-  }
-  
+  return encryptedFile;
 }
 
+
+  /**
+   * Метод расшифровки данных из файла.
+   * @param file Зашифрованный файл.
+   * @param key Ключ шифрования.
+   * @returns Расшифрованное содержимое в виде строки.
+   */
+
+  /**
+   * Метод для шифрования данных.
+   * @param data Массив байтов для шифрования.
+   * @param key Ключ шифрования.
+   * @returns Зашифрованные данные в виде Uint8Array.
+   */
+  encryptData(data: Uint8Array, key: string): Uint8Array {
+    const wordArray = CryptoJS.lib.WordArray.create(data);
+    const encrypted = CryptoJS.AES.encrypt(wordArray, key);
+    return this.wordArrayToUint8Array(encrypted.ciphertext);
+  }
+
+  /**
+   * Метод для расшифровки данных.
+   * @param encryptedData Зашифрованные данные в формате строки Base64.
+   * @param key Ключ шифрования.
+   * @returns Расшифрованное содержимое в виде строки.
+   */
+  async decryptData(encryptedData: Blob, key: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        try {
+          const encryptedText = reader.result as string;
+          const bytes = CryptoJS.AES.decrypt(encryptedText, key);
+          resolve(bytes.toString(CryptoJS.enc.Utf8));
+        } catch (error) {
+          reject(new Error('Ошибка расшифровки: ' + error));
+        }
+      };
+      reader.onerror = (error) => reject(new Error('Ошибка при чтении файла: ' + error));
+      reader.readAsDataURL(encryptedData);
+    });
+  }
+  
+  
+
+  /**
+   * Метод чтения файла и преобразования его в Uint8Array.
+   * @param file Файл для чтения.
+   * @returns Содержимое файла в виде Uint8Array.
+   */
+  private async readFile(file: File): Promise<Uint8Array> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  /**
+   * Преобразование WordArray в Uint8Array.
+   * @param wordArray Данные CryptoJS в формате WordArray.
+   * @returns Данные в формате Uint8Array.
+   */
+  private wordArrayToUint8Array(wordArray: CryptoJS.lib.WordArray): Uint8Array {
+    const words = wordArray.words;
+    const sigBytes = wordArray.sigBytes;
+
+    const u8Array = new Uint8Array(sigBytes);
+    for (let i = 0; i < sigBytes; i++) {
+      u8Array[i] = (words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+    }
+
+    return u8Array;
+  }
+}
