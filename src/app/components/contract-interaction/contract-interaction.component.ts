@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { Web3Service } from '../../services/web3.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { EncryptionService } from '../../services/encryption.service';
 
 @Component({
   selector: 'app-contract-interaction',
@@ -12,42 +13,113 @@ import { CommonModule } from '@angular/common';
 })
 export class ContractInteractionComponent implements OnInit {
   fileContent: string = '';
-  encryptionKey: string = '';
-  decryptionKey: string = '';
+  encryptKey: string = '';
+  decryptKey: string = '';
   ownerAddress: string = '';
   fileId: number | null = null;
   fileData: any = null;
   userFiles: { fileIds: string[]; fileHashes: string[] } | null = null;
-  accounts: string[] = []; // Array to hold MetaMask accounts
+  accounts: string[] = [];
 
-  constructor(private web3Service: Web3Service) {}
+  selectedFile: File | null = null;
+  selectedEncryptKeyFile: File | null = null;
+  selectedDecryptKeyFile: File | null = null;
+
+  @ViewChild('fileInput') fileInput: any;
+  @ViewChild('encryptKeyFileInput') encryptKeyFileInput: any;
+  @ViewChild('decryptKeyFileInput') decryptKeyFileInput: any;
+
+  constructor(
+    private web3Service: Web3Service,
+    private encryptionService: EncryptionService
+  ) {}
 
   ngOnInit(): void {
-    this.connectMetaMask(); // Automatically connect and fetch accounts
+    this.connectMetaMask();
   }
 
   async connectMetaMask(): Promise<void> {
     try {
       const message = await this.web3Service.connectToMetaMask();
       alert(message);
-      
-      // Fetch available accounts
+
       this.accounts = await this.web3Service.getAccounts();
       if (this.accounts.length > 0) {
-        this.ownerAddress = this.accounts[0]; // Set the default selected account
+        this.ownerAddress = this.accounts[0];
       }
     } catch (error) {
       alert('Ошибка подключения к MetaMask: ' + error);
     }
   }
 
+  // Обработчики для загрузки файлов
+  onFileChange(event: any): void {
+    const file = event.target.files[0];
+    if (file && file.type === 'text/plain') {
+      this.selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.fileContent = reader.result as string;
+      };
+      reader.readAsText(file);
+    } else {
+      alert('Пожалуйста, выберите текстовый файл (.txt).');
+    }
+  }
+
+  onEncryptKeyFileChange(event: any): void {
+    const file = event.target.files[0];
+    if (file && file.type === 'text/plain') {
+      this.selectedEncryptKeyFile = file;
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.encryptKey = reader.result as string;
+      };
+      reader.readAsText(file);
+    } else {
+      alert('Пожалуйста, выберите текстовый файл для ключа шифрования.');
+    }
+  }
+
+  onDecryptKeyFileChange(event: any): void {
+    const file = event.target.files[0];
+    if (file && file.type === 'text/plain') {
+      this.selectedDecryptKeyFile = file;
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.decryptKey = reader.result as string;
+      };
+      reader.readAsText(file);
+    } else {
+      alert('Пожалуйста, выберите текстовый файл для ключа дешифрования.');
+    }
+  }
+
+  // Метод для удаления выбранного файла
+  removeFile(fileType: string): void {
+    if (fileType === 'file') {
+      this.selectedFile = null;
+      this.fileContent = '';
+      this.fileInput.nativeElement.value = '';  // Сбрасываем поле input
+    } else if (fileType === 'encryptKey') {
+      this.selectedEncryptKeyFile = null;
+      this.encryptKey = '';
+      this.encryptKeyFileInput.nativeElement.value = '';  // Сбрасываем поле input
+    } else if (fileType === 'decryptKey') {
+      this.selectedDecryptKeyFile = null;
+      this.decryptKey = '';
+      this.decryptKeyFileInput.nativeElement.value = '';  // Сбрасываем поле input
+    }
+  }
+
   async uploadEncryptedFile(): Promise<void> {
-    if (!this.fileContent || !this.encryptionKey) {
-      alert('Введите содержимое файла и ключ шифрования.');
+    if (!this.fileContent || !this.encryptKey) {
+      alert('Пожалуйста, загрузите файл и ключ шифрования.');
       return;
     }
     try {
-      await this.web3Service.uploadEncryptedFile(this.fileContent, this.encryptionKey);
+      const encryptedData = this.encryptionService.encryptData(this.fileContent, this.encryptKey);
+      await this.web3Service.uploadEncryptedFile(encryptedData);
       alert('Файл успешно зашифрован и загружен!');
     } catch (error) {
       console.error(error);
@@ -56,12 +128,14 @@ export class ContractInteractionComponent implements OnInit {
   }
 
   async getDecryptedFile(): Promise<void> {
-    if (!this.ownerAddress || this.fileId === null || !this.decryptionKey) {
-      alert('Введите адрес владельца, ID файла и ключ расшифровки.');
+    if (!this.ownerAddress || this.fileId === null || !this.decryptKey) {
+      alert('Пожалуйста, введите адрес владельца, ID файла и ключ расшифровки.');
       return;
     }
     try {
-      this.fileData = await this.web3Service.getDecryptedFile(this.ownerAddress, this.fileId, this.decryptionKey);
+      this.fileData = await this.web3Service.getDecryptedFile(this.ownerAddress, this.fileId);
+      const decryptedData = this.encryptionService.decryptData(this.fileData, this.decryptKey);
+      alert('Файл расшифрован: ' + decryptedData);
     } catch (error) {
       alert('Ошибка получения файла: ' + error);
     }
@@ -69,7 +143,7 @@ export class ContractInteractionComponent implements OnInit {
 
   async getUserFiles(): Promise<void> {
     if (!this.ownerAddress) {
-      alert('Введите адрес владельца.');
+      alert('Пожалуйста, введите адрес владельца.');
       return;
     }
     try {

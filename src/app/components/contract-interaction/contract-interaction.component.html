@@ -1,30 +1,66 @@
-
 <div class="container">
-  <h3 class="section-title">Выберите аккаунт MetaMask</h3>
+  <h3 class="section-title">1. Выберите аккаунт MetaMask</h3>
   <select [(ngModel)]="ownerAddress" class="dropdown">
     <option *ngFor="let account of accounts" [value]="account">{{ account }}</option>
   </select>
 </div>
 
 <div class="container">
-  <h3 class="section-title">Загрузить файл</h3>
-  <textarea [(ngModel)]="fileContent" class="input-field" placeholder="Введите содержимое файла"></textarea>
-  <input type="text" [(ngModel)]="encryptionKey" class="input-field" placeholder="Введите ключ шифрования" />
-  <button (click)="uploadEncryptedFile()" class="button">Загрузить</button>
+  <h3 class="section-title">2. Загрузить файл и ключ для шифрования</h3>
+  
+  <div class="file-upload">
+    <label for="fileInput" class="button">Выбрать файл для шифрования</label>
+    <input #fileInput type="file" (change)="onFileChange($event)" accept=".txt" style="display: none;" />
+    <div *ngIf="selectedFile" class="file-info">
+      <p>Выбран файл: {{ selectedFile.name }}</p>
+      <button (click)="removeFile('file')" class="button">Отменить выбор файла</button>
+    </div>
+  </div>
+
+  <div class="file-upload" *ngIf="selectedFile">
+    <label for="encryptKeyFileInput" class="button">Выбрать файл с ключом шифрования</label>
+    <input #encryptKeyFileInput type="file" (change)="onEncryptKeyFileChange($event)" accept=".txt" style="display: none;" />
+    <div *ngIf="selectedEncryptKeyFile" class="file-info">
+      <p>Выбран ключ: {{ selectedEncryptKeyFile.name }}</p>
+      <button (click)="removeFile('encryptKey')" class="button">Отменить выбор ключа</button>
+    </div>
+  </div>
+
+  <div *ngIf="selectedFile && selectedEncryptKeyFile">
+    <button (click)="uploadEncryptedFile()" class="button">Загрузить зашифрованный файл</button>
+  </div>
 </div>
 
 <div class="container">
-  <h3 class="section-title">Получить файл</h3>
-  <input type="text" [(ngModel)]="ownerAddress" class="input-field" placeholder="Адрес владельца" />
-  <input type="number" [(ngModel)]="fileId" class="input-field" placeholder="ID файла" />
-  <input type="text" [(ngModel)]="decryptionKey" class="input-field" placeholder="Введите ключ расшифровки" />
-  <button (click)="getDecryptedFile()" class="button">Получить данные файла</button>
+  <h3 class="section-title">3. Получить файл</h3>
+  
+  <div class="file-upload">
+    <label for="decryptKeyFileInput" class="button">Выбрать файл с ключом для дешифровки</label>
+    <input #decryptKeyFileInput type="file" (change)="onDecryptKeyFileChange($event)" accept=".txt" style="display: none;" />
+    <div *ngIf="selectedDecryptKeyFile" class="file-info">
+      <p>Выбран ключ для дешифровки: {{ selectedDecryptKeyFile.name }}</p>
+      <button (click)="removeFile('decryptKey')" class="button">Отменить выбор ключа дешифровки</button>
+    </div>
+  </div>
+
+  <div *ngIf="selectedDecryptKeyFile">
+    <button (click)="getDecryptedFile()" class="button">Получить расшифрованный файл</button>
+  </div>
+  
   <pre *ngIf="fileData" class="output">{{ fileData }}</pre>
 </div>
 
 <div class="container">
-  <h3 class="section-title">Файлы пользователя</h3>
-  <input type="text" [(ngModel)]="ownerAddress" class="input-field" placeholder="Адрес владельца" />
+  <h3 class="section-title">4. Выберите ID файла для получения</h3>
+  <div>
+    <label for="fileIdInput" class="button">Введите ID файла</label>
+    <input #fileIdInput type="text" [(ngModel)]="fileId" placeholder="ID файла" class="input" />
+    <button *ngIf="fileId" (click)="getDecryptedFile()" class="button">Получить файл по ID</button>
+  </div>
+</div>  
+
+<div class="container">
+  <h3 class="section-title">5. Все файлы пользователя</h3>
   <button (click)="getUserFiles()" class="button">Получить файлы</button>
   <ul *ngIf="userFiles" class="file-list">
     <li *ngFor="let file of userFiles.fileHashes; let i = index" class="file-item">

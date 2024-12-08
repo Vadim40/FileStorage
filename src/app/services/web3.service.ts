@@ -3,8 +3,7 @@ import Web3 from 'web3';
 import { AbiItem } from 'web3-utils';
 import { environment } from '../../environments/environment';
 import { EncryptionService } from './encryption.service';
-import { Observable } from 'rxjs';
-import { switchMap, tap } from 'rxjs/operators';
+import { PinataService } from './pinata.service';
 
 @Injectable({
   providedIn: 'root',
@@ -13,7 +12,9 @@ export class Web3Service {
   private web3: Web3 | undefined;
   private contract: any;
 
-  constructor(private encryptionService: EncryptionService) {
+  constructor(
+    private encryptionService: EncryptionService,
+  private pinataService: PinataService) {
     this.initializeContract();
   }
 
@@ -32,48 +33,28 @@ export class Web3Service {
     return 'MetaMask успешно подключен!';
   }
 
-  async uploadEncryptedFile(fileContent: string, key: string): Promise<void> {
-    if (!fileContent || !key) {
-      alert('Введите содержимое файла и ключ шифрования.');
-      return;
-    }
-  
-    const encryptedData = this.encryptionService.encryptData(fileContent, key);
-  
+  async uploadEncryptedFile(fileContent: string): Promise<void> {
     const formData = new FormData();
-    const file = new Blob([encryptedData], { type: 'text/plain' });
+    const file = new Blob([fileContent], { type: 'text/plain' });
     formData.append('file', file, 'encrypted.txt');
   
     try {
-      const cid = await this.encryptionService.uploadToPinata(formData);
+      const cid = await this.pinataService.uploadToPinata(formData);
       const accounts = await this.getAccounts();
-      const receipt = await this.contract.methods
-    .uploadFile(cid)
-    .send({ from: accounts[0] });
-
-    console.log('Transaction hash:', receipt.transactionHash);
-
-      console.log('Transaction receipt:', receipt);
-      alert('Файл успешно зашифрован и загружен!');
+      await this.contract.methods.uploadFile(cid).send({ from: accounts[0] });
     } catch (error) {
       console.error(error);
-      alert('Ошибка загрузки файла: ' + error);
     }
   }
   
-  async getDecryptedFile(owner: string, fileId: number, key: string): Promise<string> {
+  
+  async getDecryptedFile(owner: string, fileId: number): Promise<string> {
     try {
 
       const fileData = await this.contract.methods.getFile(owner, fileId).call();
       const cid = fileData[0]; 
-      if (typeof cid !== 'string') {
-        throw new Error('Invalid CID format from contract');
-      }
-     
-      const encryptedData: string = await this.encryptionService.getFromPinata(cid);
-      const decryptedData: string = this.encryptionService.decryptData(encryptedData, key);
-  
-      return decryptedData;
+      const encryptedData: string = await this.pinataService.getFromPinata(cid);
+      return encryptedData;
     } catch (error) {
       throw new Error('Ошибка получения или расшифровки данных: ' + error);
     }
