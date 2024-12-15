@@ -56,7 +56,7 @@ export class Web3Service {
       const encryptedData: string = await this.pinataService.getFromPinata(cid);
       return encryptedData;
     } catch (error) {
-      throw new Error('Ошибка получения или расшифровки данных: ' + error);
+      throw new Error('Ошибка получения данных: ' + error);
     }
   }
   

@@ -35,18 +35,22 @@ export class PinataService {
     }
   }
   
-    
-
   async getFromPinata(cid: string): Promise<string> {
-    const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+    const proxyUrl = `http://localhost:3000/proxy/pinata/${cid}`;
   
     try {
-      const data = await firstValueFrom(
-        this.http.get<string>(url, { responseType: 'text' as 'json' })
-      );
-      return data;
-    } catch (error) {
-      throw new Error('Ошибка получения данных из Pinata: ' + error);
+      const response = await this.http.get(proxyUrl, { responseType: 'text' }).toPromise();
+      return response as string; 
+    } catch (error: any) {
+      console.error('Error details:', error);
+      if (error?.status === 0) {
+        throw new Error('Proxy server error: Unable to fetch data.');
+      }
+      throw new Error('Ошибка получения данных из прокси: ' + (error?.message || 'Unknown error'));
     }
   }
+  
+  
+  
+  
 }

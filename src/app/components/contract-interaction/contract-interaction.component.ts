@@ -88,6 +88,7 @@ export class ContractInteractionComponent implements OnInit {
       const reader = new FileReader();
       reader.onload = () => {
         this.decryptKey = reader.result as string;
+        console.log(this.decryptKey);
       };
       reader.readAsText(file);
     } else {
@@ -133,13 +134,31 @@ export class ContractInteractionComponent implements OnInit {
       return;
     }
     try {
+      // Получаем зашифрованные данные
       this.fileData = await this.web3Service.getDecryptedFile(this.ownerAddress, this.fileId);
+      console.log(this.fileData);
+  
+      // Расшифровываем данные
       const decryptedData = this.encryptionService.decryptData(this.fileData, this.decryptKey);
-      alert('Файл расшифрован: ' + decryptedData);
+  
+      // Создаем blob-файл из расшифрованных данных
+      const blob = new Blob([decryptedData], { type: 'application/octet-stream' });
+  
+      // Создаем ссылку для скачивания
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `file_${this.fileId}.txt`; // Имя файла по умолчанию
+      a.click();
+  
+      // Освобождаем память, занятую URL
+      window.URL.revokeObjectURL(url);
+  
     } catch (error) {
       alert('Ошибка получения файла: ' + error);
     }
   }
+  
 
   async getUserFiles(): Promise<void> {
     if (!this.ownerAddress) {
