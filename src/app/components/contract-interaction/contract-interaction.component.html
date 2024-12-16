@@ -49,8 +49,13 @@
   <h3 class="section-title">Файлы пользователя</h3>
   <button (click)="getUserFiles()" class="button">Получить файлы</button>
   <ul *ngIf="userFiles" class="file-list">
-    <li *ngFor="let file of userFiles.fileHashes; let i = index" class="file-item">
-      ID: {{ userFiles.fileIds[i] }}, Хэш: {{ file }}
+    <li *ngFor="let file of userFiles.fileIds; let i = index" class="file-item">
+      <p><strong>ID файла:</strong> {{ file }}</p>
+      <p><strong>Название файла:</strong> {{ userFiles.fileNames[i] }}</p>
+      <p><strong>Время создания:</strong> {{ userFiles.timestamps[i] }}</p>
+      <button (click)="deleteFile(file)" class="remove-file">Удалить</button>
     </li>
   </ul>
 </div>
+
+

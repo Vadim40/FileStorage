@@ -17,9 +17,13 @@ export class ContractInteractionComponent implements OnInit {
   decryptKey: string = '';
   ownerAddress: string = '';
   fileId: number | null = null;
-  fileData: any = null;
-  userFiles: { fileIds: string[]; fileHashes: string[] } | null = null;
-  accounts: string[] = [];
+  file: any = null;
+  userFiles: { 
+    fileIds: string[]; 
+    fileNames: string[]; 
+    timestamps: string[]; 
+  } | null = null;
+    accounts: string[] = [];
 
   selectedFile: File | null = null;
   selectedEncryptKeyFile: File | null = null;
@@ -120,7 +124,7 @@ export class ContractInteractionComponent implements OnInit {
     }
     try {
       const encryptedData = this.encryptionService.encryptData(this.fileContent, this.encryptKey);
-      await this.web3Service.uploadEncryptedFile(encryptedData);
+      await this.web3Service.uploadEncryptedFile(encryptedData, this.selectedFile!.name);
       alert('Файл успешно зашифрован и загружен!');
     } catch (error) {
       console.error(error);
@@ -134,24 +138,21 @@ export class ContractInteractionComponent implements OnInit {
       return;
     }
     try {
-      // Получаем зашифрованные данные
-      this.fileData = await this.web3Service.getDecryptedFile(this.ownerAddress, this.fileId);
-      console.log(this.fileData);
+      this.file = await this.web3Service.getDecryptedFile(this.ownerAddress, this.fileId);
+      console.log(this.file);
   
-      // Расшифровываем данные
-      const decryptedData = this.encryptionService.decryptData(this.fileData, this.decryptKey);
   
-      // Создаем blob-файл из расшифрованных данных
+      const decryptedData = this.encryptionService.decryptData(this.file.fileContent, this.decryptKey);
+      console.log(decryptedData);
+  
       const blob = new Blob([decryptedData], { type: 'application/octet-stream' });
   
-      // Создаем ссылку для скачивания
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `file_${this.fileId}.txt`; // Имя файла по умолчанию
+      a.download = `file_${this.file.fileName}.txt`; 
       a.click();
   
-      // Освобождаем память, занятую URL
       window.URL.revokeObjectURL(url);
   
     } catch (error) {
@@ -169,6 +170,15 @@ export class ContractInteractionComponent implements OnInit {
       this.userFiles = await this.web3Service.getUserFiles(this.ownerAddress);
     } catch (error) {
       alert('Ошибка получения файлов: ' + error);
+    }
+  }
+  async deleteFile(fileId: string): Promise<void> {
+    try {
+      await this.web3Service.deleteFile(Number(fileId), this.ownerAddress); 
+      alert(`Файл с ID ${fileId} успешно удалён.`);
+      this.getUserFiles();  
+    } catch (error) {
+      alert('Ошибка удаления файла: ' + error);
     }
   }
 }
